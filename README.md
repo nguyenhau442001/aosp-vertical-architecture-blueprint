@@ -22,50 +22,29 @@ flowchart TD
 
 ## 🚀 Fast Iteration Development Workflow
 
-### 1. Select the Right "Unlocked" ROM Image
-* **Target Image:** Download an **Automotive** or **AOSP** system image with `arm64-v8a` architecture using the Android Studio SDK Manager or `sdkmanager` CLI:
-  ```bash
-  sdkmanager "system-images;android-35-ext15;android-automotive;arm64-v8a"
-  ```
-* **Target Type:** You **must** select **Google APIs** or **AOSP** (`userdebug` build).
-* ⚠️ **Warning:** Avoid **Google Play** images. They are production-signed and locked against root permissions, preventing modifications to system partitions (`/system`, `/vendor`).
-* 💡 **Launch via provided helper script:**
-  ```bash
-  # Automatically resolves Android SDK path and launches Automotive_15_ARM64 with -writable-system
-  ./scripts/start_emulator.sh
-  # Or specify a custom AVD name:
-  ./scripts/start_emulator.sh <AVD_NAME>
-  ```
+### ⚡ Quick Start (One Command)
+Launch Android 15 Automotive and automatically unlock write permissions on `/system` and `/vendor`:
+```bash
+make run
+# or: ./scripts/run.sh
+```
 
 ---
 
-### 2. Unlock Partitions (One-time Setup)
-To enable `adb push` into `/system` or `/vendor`, you must launch the AVD with the `-writable-system` flag, then disable device integrity checks (**dm-verity**):
+### Step-by-Step Breakdown
 
-#### Option A: Automated via Helper Script (Recommended)
-Open a new terminal tab while the emulator is running:
+#### 1. ROM Selection & Setup
+* **Target:** Android 15 Automotive `arm64-v8a` (`system-images;android-35-ext15;android-automotive;arm64-v8a`).
+* **Type:** Google APIs (`userdebug`). Avoid Google Play images as they block root and partition remounting.
+* **AVD:** `Automotive_15_ARM64` (preconfigured with GPU acceleration and landscape orientation).
+
+#### 2. Partition Unlock (Root, dm-verity, remount)
+To allow pushing files into `/system` and `/vendor`:
 ```bash
-./scripts/unlock_partitions.sh
+# Handled automatically by `make run`, or manually via:
+adb wait-for-device && adb root && adb disable-verity && adb reboot
+adb wait-for-device && adb root && adb remount
 ```
-
-#### Option B: Manual Execution
-1. **Launch the emulator with writable system support:**
-   ```bash
-   emulator -avd <AVD_NAME> -writable-system
-   ```
-
-2. **Disable partition verification (dm-verity):**
-   ```bash
-   adb root
-   adb disable-verity
-   adb reboot
-   ```
-
-3. **Once the device reboots, remount partitions with write permissions:**
-   ```bash
-   adb root
-   adb remount
-   ```
 
 ---
 
