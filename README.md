@@ -26,12 +26,26 @@ flowchart TD
 * **Image target:** Tải image **Automotive** hoặc **AOSP** kiến trúc `arm64-v8a` từ SDK Manager của Android Studio.
 * **Loại Image:** Bắt buộc chọn loại target là **Google APIs** hoặc **AOSP** (bản `userdebug`).
 * ⚠️ **Lưu ý:** Tuyệt đối tránh các bản có chữ **Google Play** vì chúng bị khóa quyền root và chữ ký bảo mật, không thể can thiệp vào phân vùng hệ thống (`/system`, `/vendor`).
+* 💡 **Khởi chạy nhanh qua script có sẵn:**
+  ```bash
+  # Tự động tìm Android SDK và khởi chạy AVD với cờ -writable-system
+  ./scripts/start_emulator.sh
+  # Hoặc chỉ định tên AVD khác:
+  ./scripts/start_emulator.sh <Tên_AVD>
+  ```
 
 ---
 
 ### 2. Bẻ khóa phân vùng (Chỉ cần thực hiện 1 lần đầu)
 Để có thể sử dụng `adb push` vào `/system` hoặc `/vendor`, bạn phải khởi chạy AVD với cờ cho phép ghi (`-writable-system`), sau đó tắt tính năng bảo vệ vẹn toàn (**dm-verity**):
 
+#### Cách 1: Tự động hóa qua script (Khuyên dùng)
+Mở một tab terminal mới trong khi emulator đang chạy:
+```bash
+./scripts/unlock_partitions.sh
+```
+
+#### Cách 2: Chạy thủ công từng lệnh
 1. **Khởi chạy giả lập với quyền ghi:**
    ```bash
    emulator -avd <Tên_AVD> -writable-system
