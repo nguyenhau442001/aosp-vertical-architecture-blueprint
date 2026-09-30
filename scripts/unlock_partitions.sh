@@ -2,43 +2,43 @@
 set -e
 
 # ==============================================================================
-# Script tự động hóa Bước 2: Bẻ khóa phân vùng (Root, Disable-verity, Remount)
-# Yêu cầu: AVD đang chạy với cờ -writable-system
+# Automated Step 2: Unlock System Partitions (Root, Disable-verity, Remount)
+# Requirement: AVD must be launched with the -writable-system flag
 # ==============================================================================
 
-echo "🔍 Đang kiểm tra thiết bị qua ADB..."
+echo "🔍 Waiting for device via ADB..."
 adb wait-for-device
 
-echo "⏳ Đang đợi Android boot hoàn tất (sys.boot_completed)..."
+echo "⏳ Waiting for Android to complete boot (sys.boot_completed)..."
 while [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" != "1" ]; do
     sleep 2
 done
 
-echo "🔓 1. Chuyển sang adb root..."
+echo "🔓 1. Restarting adbd with root permissions..."
 adb root
 sleep 2
 
-echo "🛡️  2. Tắt bảo vệ vẹn toàn (disable-verity)..."
+echo "🛡️  2. Disabling dm-verity integrity checks..."
 adb disable-verity
 
-echo "🔄 3. Đang reboot lại máy ảo..."
+echo "🔄 3. Rebooting emulator..."
 adb reboot
 
-echo "⏳ Đang chờ máy ảo khởi động lại..."
+echo "⏳ Waiting for emulator to reboot..."
 adb wait-for-device
 while [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" != "1" ]; do
     sleep 2
 done
 
-echo "🔓 4. Cấp quyền root sau khi reboot..."
+echo "🔓 4. Re-granting root permissions post-reboot..."
 adb root
 sleep 2
 
-echo "📂 5. Mở khóa quyền ghi đè phân vùng (remount)..."
+echo "📂 5. Remounting system partitions with write permissions..."
 adb remount
 
 echo ""
 echo "======================================================================"
-echo "🎉 CHÚC MỪNG: Phân vùng hệ thống (/system, /vendor) đã được mở khóa ghi đè thành công!"
-echo "👉 Bạn đã sẵn sàng cho Bước 3 & Bước 4 (Bơm binary & service vào máy ảo)."
+echo "🎉 SUCCESS: System and vendor partitions have been successfully remounted as writable!"
+echo "👉 You are now ready for Step 3 & Step 4 (Build & deploy your native service/binaries)."
 echo "======================================================================"

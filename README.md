@@ -1,12 +1,12 @@
 # AOSP Vertical Architecture Blueprint
 
-Blueprint và cẩm nang kiến trúc phát triển tính năng theo chiều dọc (Vertical Slice) trên nền tảng **Android Open Source Project (AOSP)** / **Android Automotive OS (AAOS)** — tối ưu hóa quy trình làm việc hybrid giữa **macOS (Apple Silicon)** và máy ảo **Linux (UTM)**.
+A architectural blueprint and fast-iteration guide for vertical slice development on **Android Open Source Project (AOSP)** and **Android Automotive OS (AAOS)** — optimized for a hybrid development workflow between **macOS (Apple Silicon host)** and **Linux (UTM virtual machine)**.
 
 ---
 
-## 🏗️ Tổng quan kiến trúc Vertical Slice (Smart Cabin Example)
+## 🏗️ Vertical Slice Architecture Overview (Smart Cabin Example)
 
-Mô hình phát triển dọc đi từ lớp phần cứng (HAL) đến ứng dụng người dùng (App):
+Vertical development cuts across all layers from the hardware abstraction layer (HAL) up to the user-facing application:
 
 ```mermaid
 flowchart TD
@@ -20,45 +20,45 @@ flowchart TD
 
 ---
 
-## 🚀 Quy trình phát triển & triển khai nhanh (Fast Iteration Workflow)
+## 🚀 Fast Iteration Development Workflow
 
-### 1. Chọn đúng bản ROM "mở khóa"
-* **Image target:** Tải image **Automotive** hoặc **AOSP** kiến trúc `arm64-v8a` từ SDK Manager của Android Studio.
-* **Loại Image:** Bắt buộc chọn loại target là **Google APIs** hoặc **AOSP** (bản `userdebug`).
-* ⚠️ **Lưu ý:** Tuyệt đối tránh các bản có chữ **Google Play** vì chúng bị khóa quyền root và chữ ký bảo mật, không thể can thiệp vào phân vùng hệ thống (`/system`, `/vendor`).
-* 💡 **Khởi chạy nhanh qua script có sẵn:**
+### 1. Select the Right "Unlocked" ROM Image
+* **Target Image:** Download an **Automotive** or **AOSP** system image with `arm64-v8a` architecture using the Android Studio SDK Manager or `sdkmanager` CLI.
+* **Target Type:** You **must** select **Google APIs** or **AOSP** (`userdebug` build).
+* ⚠️ **Warning:** Avoid **Google Play** images. They are production-signed and locked against root permissions, preventing modifications to system partitions (`/system`, `/vendor`).
+* 💡 **Launch via provided helper script:**
   ```bash
-  # Tự động tìm Android SDK và khởi chạy AVD với cờ -writable-system
+  # Automatically resolves Android SDK path and launches AVD with -writable-system
   ./scripts/start_emulator.sh
-  # Hoặc chỉ định tên AVD khác:
-  ./scripts/start_emulator.sh <Tên_AVD>
+  # Or specify a custom AVD name:
+  ./scripts/start_emulator.sh <AVD_NAME>
   ```
 
 ---
 
-### 2. Bẻ khóa phân vùng (Chỉ cần thực hiện 1 lần đầu)
-Để có thể sử dụng `adb push` vào `/system` hoặc `/vendor`, bạn phải khởi chạy AVD với cờ cho phép ghi (`-writable-system`), sau đó tắt tính năng bảo vệ vẹn toàn (**dm-verity**):
+### 2. Unlock Partitions (One-time Setup)
+To enable `adb push` into `/system` or `/vendor`, you must launch the AVD with the `-writable-system` flag, then disable device integrity checks (**dm-verity**):
 
-#### Cách 1: Tự động hóa qua script (Khuyên dùng)
-Mở một tab terminal mới trong khi emulator đang chạy:
+#### Option A: Automated via Helper Script (Recommended)
+Open a new terminal tab while the emulator is running:
 ```bash
 ./scripts/unlock_partitions.sh
 ```
 
-#### Cách 2: Chạy thủ công từng lệnh
-1. **Khởi chạy giả lập với quyền ghi:**
+#### Option B: Manual Execution
+1. **Launch the emulator with writable system support:**
    ```bash
-   emulator -avd <Tên_AVD> -writable-system
+   emulator -avd <AVD_NAME> -writable-system
    ```
 
-2. **Vô hiệu hóa bảo mật phân vùng (dm-verity):**
+2. **Disable partition verification (dm-verity):**
    ```bash
    adb root
    adb disable-verity
    adb reboot
    ```
 
-3. **Sau khi máy ảo boot lên lại, mở khóa quyền ghi đè:**
+3. **Once the device reboots, remount partitions with write permissions:**
    ```bash
    adb root
    adb remount
@@ -66,8 +66,8 @@ Mở một tab terminal mới trong khi emulator đang chạy:
 
 ---
 
-### 3. Build Module Cục Bộ (Trên môi trường Linux / UTM)
-Trong môi trường Ubuntu (UTM trên Apple Silicon), không cần chạy lệnh `m` toàn hệ thống (mất nhiều giờ). Chỉ cần build đích danh module vừa tạo hoặc chỉnh sửa:
+### 3. Build Modules Locally (On Linux / UTM VM)
+In the Ubuntu (UTM) environment, avoid running a full system `m` build (which takes hours). Build only the target modules you created or modified:
 
 * **Build C++ HAL Daemon:**
   ```bash
@@ -77,17 +77,17 @@ Trong môi trường Ubuntu (UTM trên Apple Silicon), không cần chạy lện
   ```bash
   m CabinManager
   ```
-* **Lấy output:** Thu thập các file binary hoặc file `.jar` vừa được sinh ra trong thư mục:
+* **Retrieve Output Artifacts:** Collect the generated binaries or `.jar` files from:
   ```bash
   out/target/product/<target_device>/vendor/bin/hw/
   out/target/product/<target_device>/system/framework/
   ```
-  sau đó đồng bộ / copy sang máy host (macOS).
+  and synchronize/copy them over to the host machine (macOS).
 
 ---
 
-### 4. Bơm code vào giả lập (Trên macOS Host)
-Đẩy trực tiếp file thực thi và các file cấu hình `init`, `VINTF manifest` vào máy ảo qua ADB:
+### 4. Deploy Artifacts to Emulator (On macOS Host)
+Push the executable binaries and service configuration files directly into the emulator via ADB:
 
 ```bash
 adb push smartcabin-service /vendor/bin/hw/
@@ -97,24 +97,24 @@ adb push smartcabin-manifest.xml /vendor/etc/vintf/manifest/
 
 ---
 
-### 5. Xử lý rào cản SELinux & Khởi chạy Service
-Khi push file từ bên ngoài vào, nhãn bảo mật SELinux của file sẽ bị sai hoặc thiếu policy, khiến hệ điều hành chặn daemon khởi chạy.
+### 5. Bypass SELinux & Start the Service
+When files are pushed externally via ADB, SELinux security contexts are often missing or mislabeled, causing Android's init to block execution.
 
-1. **Chuyển SELinux sang chế độ Permissive (dùng trong giai đoạn prototype/dev):**
+1. **Set SELinux to Permissive mode (for prototyping / development):**
    ```bash
    adb shell setenforce 0
    ```
 
-2. **Khởi động lại SystemServer để Android nhận diện service mới (không cần reboot cả máy ảo):**
+2. **Restart SystemServer to register new framework services (no need to reboot the entire emulator):**
    ```bash
    adb shell stop && adb shell start
    ```
 
-3. **Kiểm tra trạng thái service:**
+3. **Verify service status:**
    ```bash
-   # Kiểm tra service HAL đang chạy
+   # Check if native HAL daemon is running
    adb shell ps -A | grep smartcabin
 
-   # Xem logcat của service
+   # Inspect logcat output
    adb shell logcat -s SmartCabin
    ```
