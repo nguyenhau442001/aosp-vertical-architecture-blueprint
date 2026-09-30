@@ -24,7 +24,7 @@ if [ ! -x "$EMULATOR_BIN" ]; then
 fi
 
 # Default AVD name or override via first argument ($1)
-DEFAULT_AVD="Automotive_1408p_landscape"
+DEFAULT_AVD="Automotive_15_ARM64"
 AVD_NAME="${1:-$DEFAULT_AVD}"
 
 # Verify whether the target AVD exists

@@ -23,12 +23,15 @@ flowchart TD
 ## 🚀 Fast Iteration Development Workflow
 
 ### 1. Select the Right "Unlocked" ROM Image
-* **Target Image:** Download an **Automotive** or **AOSP** system image with `arm64-v8a` architecture using the Android Studio SDK Manager or `sdkmanager` CLI.
+* **Target Image:** Download an **Automotive** or **AOSP** system image with `arm64-v8a` architecture using the Android Studio SDK Manager or `sdkmanager` CLI:
+  ```bash
+  sdkmanager "system-images;android-35-ext15;android-automotive;arm64-v8a"
+  ```
 * **Target Type:** You **must** select **Google APIs** or **AOSP** (`userdebug` build).
 * ⚠️ **Warning:** Avoid **Google Play** images. They are production-signed and locked against root permissions, preventing modifications to system partitions (`/system`, `/vendor`).
 * 💡 **Launch via provided helper script:**
   ```bash
-  # Automatically resolves Android SDK path and launches AVD with -writable-system
+  # Automatically resolves Android SDK path and launches Automotive_15_ARM64 with -writable-system
   ./scripts/start_emulator.sh
   # Or specify a custom AVD name:
   ./scripts/start_emulator.sh <AVD_NAME>
