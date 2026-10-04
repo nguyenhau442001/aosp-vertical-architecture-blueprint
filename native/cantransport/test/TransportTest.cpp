@@ -66,6 +66,18 @@ TEST(CanFrameTest, ToStringIsCandumpStyle) {
     EXPECT_EQ(toString(empty), "007#");
 }
 
+TEST(CanFrameTest, ParseFrameRoundTripsToString) {
+    auto frame = parseFrame("3E8#7902000000000000");
+    ASSERT_TRUE(frame.has_value());
+    EXPECT_EQ(*frame, thermalFrame());
+    EXPECT_EQ(parseFrame("7#")->dlc, 0);
+    EXPECT_FALSE(parseFrame("800#00").has_value());
+    EXPECT_FALSE(parseFrame("3E8#7").has_value());
+    EXPECT_FALSE(parseFrame("3E8#0011223344556677AA").has_value());
+    EXPECT_FALSE(parseFrame("3G8#00").has_value());
+    EXPECT_FALSE(parseFrame("3E8").has_value());
+}
+
 TEST(CreateTransportTest, ParsesSpecs) {
     auto tcp = createTransport("tcp:127.0.0.1:29536");
     ASSERT_NE(tcp, nullptr);

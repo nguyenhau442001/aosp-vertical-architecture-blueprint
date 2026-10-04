@@ -1,0 +1,5 @@
+service vendor.vehicle-hal-blueprint /vendor/bin/hw/android.hardware.automotive.vehicle@V3-blueprint-can-service
+    class early_hal
+    user vehicle_network
+    # inet: TCP transport (cansim via adb reverse). SocketCAN needs no extra group.
+    group system inet

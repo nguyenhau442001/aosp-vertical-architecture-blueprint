@@ -190,6 +190,15 @@ TEST(CanBridgeTest, ReportsUnavailableWhenEcuGoesSilent) {
     EXPECT_FALSE(updates[3].available);
 }
 
+TEST(CanBridgeTest, InjectFrameWorksWithoutStart) {
+    Collector collector;
+    CanBridge bridge(std::make_unique<FakeTransport>(), allBindings(),
+                     [&](const auto& u) { collector(u); });
+    bridge.injectFrame(thermal(0x79, 0x02, 63, 68));
+    ASSERT_EQ(collector.updates().size(), 3u);
+    EXPECT_NEAR(collector.updates()[0].value, 23.3, 1e-9);
+}
+
 TEST(CanBridgeTest, ReportsUnavailableWhileDisconnected) {
     auto transport = std::make_unique<FakeTransport>();
     transport->frames.push_back(thermal(0x79, 0x02, 63, 68));

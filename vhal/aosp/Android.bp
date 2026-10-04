@@ -1,0 +1,53 @@
+// Place this repo (or a symlink to it) under the AOSP tree, for example
+// vendor/blueprint/, then: m android.hardware.automotive.vehicle@V3-blueprint-can-service
+//
+// Module and defaults names follow Android 15 (VHAL AIDL V3):
+// hardware/interfaces/automotive/vehicle/aidl/impl/vhal/Android.bp.
+// On another branch, compare against that file first.
+
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+cc_library_static {
+    name: "BlueprintCanVehicleHardware",
+    vendor: true,
+    defaults: ["VehicleHalDefaults"],
+    srcs: ["src/CanVehicleHardware.cpp"],
+    export_include_dirs: ["include"],
+    header_libs: ["IVehicleHardware"],
+    export_header_lib_headers: ["IVehicleHardware"],
+    static_libs: [
+        "VehicleHalUtils",
+        "libblueprint_canbridge",
+    ],
+    export_static_lib_headers: ["libblueprint_canbridge"],
+    shared_libs: ["libbase"],
+    cflags: ["-Wall", "-Wextra", "-Werror"],
+}
+
+cc_binary {
+    name: "android.hardware.automotive.vehicle@V3-blueprint-can-service",
+    vendor: true,
+    relative_install_path: "hw",
+    defaults: [
+        "FakeVehicleHardwareDefaults",
+        "VehicleHalDefaults",
+        "android-automotive-large-parcelable-defaults",
+    ],
+    init_rc: ["vhal-blueprint-can-service.rc"],
+    vintf_fragments: ["vhal-blueprint-can-service.xml"],
+    srcs: ["src/VehicleService.cpp"],
+    static_libs: [
+        "BlueprintCanVehicleHardware",
+        "DefaultVehicleHal",
+        "FakeVehicleHardware",
+        "VehicleHalUtils",
+        "libblueprint_canbridge",
+    ],
+    header_libs: ["IVehicleHardware"],
+    shared_libs: [
+        "libbase",
+        "libbinder_ndk",
+    ],
+}

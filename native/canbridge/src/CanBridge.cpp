@@ -70,6 +70,24 @@ bool CanBridge::sleepFor(std::chrono::milliseconds duration) {
     return mRunning;
 }
 
+void CanBridge::injectFrame(const CanFrame& frame) {
+    route(&frame);
+}
+
+void CanBridge::route(const CanFrame* frame) {
+    std::vector<PropertyUpdate> updates;
+    {
+        std::lock_guard<std::mutex> lock(mRouterLock);
+        int64_t now = elapsedRealtimeNs();
+        if (frame != nullptr) {
+            updates = mRouter.onFrame(*frame, now);
+        }
+        auto stale = mRouter.checkTimeouts(now);
+        updates.insert(updates.end(), stale.begin(), stale.end());
+    }
+    if (!updates.empty()) mListener(updates);
+}
+
 void CanBridge::run() {
     auto backoff = mOptions.reconnectMin;
     auto nextAttempt = std::chrono::steady_clock::now();
@@ -91,17 +109,7 @@ void CanBridge::run() {
 
         // Timeouts are checked even while disconnected: a dead link means the
         // ECU values are stale and VHAL must stop reporting them as AVAILABLE.
-        std::vector<PropertyUpdate> updates;
-        {
-            std::lock_guard<std::mutex> lock(mRouterLock);
-            int64_t now = elapsedRealtimeNs();
-            if (result == ReadResult::kFrame) {
-                updates = mRouter.onFrame(frame, now);
-            }
-            auto stale = mRouter.checkTimeouts(now);
-            updates.insert(updates.end(), stale.begin(), stale.end());
-        }
-        if (!updates.empty()) mListener(updates);
+        route(result == ReadResult::kFrame ? &frame : nullptr);
 
         if (mConnected && (result == ReadResult::kClosed || result == ReadResult::kError)) {
             mTransport->close();

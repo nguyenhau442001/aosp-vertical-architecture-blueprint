@@ -19,6 +19,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 
 namespace blueprint::can {
@@ -42,5 +43,6 @@ bool deserializeFrame(const uint8_t in[kWireFrameSize], CanFrame* frame);
 
 // candump-style text: "3E8#7902000000000000".
 std::string toString(const CanFrame& frame);
+std::optional<CanFrame> parseFrame(const std::string& text);
 
 }  // namespace blueprint::can

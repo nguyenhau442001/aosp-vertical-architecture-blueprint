@@ -53,11 +53,15 @@ class CanBridge {
     void start();
     void stop();
 
+    // Route a frame as if it came from the transport (dumpsys/debug hook).
+    void injectFrame(const CanFrame& frame);
+
     bool connected() const { return mConnected; }
     SignalRouter::Stats stats() const;
 
   private:
     void run();
+    void route(const CanFrame* frame);
     bool sleepFor(std::chrono::milliseconds duration);  // false if stopped meanwhile
 
     std::unique_ptr<ICanTransport> mTransport;

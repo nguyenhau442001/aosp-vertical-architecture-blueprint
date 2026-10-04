@@ -58,4 +58,33 @@ std::string toString(const CanFrame& frame) {
     return std::string(buf, n);
 }
 
+std::optional<CanFrame> parseFrame(const std::string& text) {
+    size_t hash = text.find('#');
+    if (hash == std::string::npos || hash == 0 || hash > 3) return std::nullopt;
+    std::string payload = text.substr(hash + 1);
+    if (payload.size() % 2 != 0 || payload.size() > 16) return std::nullopt;
+
+    auto hexValue = [](char c) -> int {
+        if (c >= '0' && c <= '9') return c - '0';
+        if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+        if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+        return -1;
+    };
+    CanFrame frame;
+    for (size_t i = 0; i < hash; ++i) {
+        int v = hexValue(text[i]);
+        if (v < 0) return std::nullopt;
+        frame.id = (frame.id << 4) | static_cast<uint32_t>(v);
+    }
+    if (frame.id > kStandardIdMask) return std::nullopt;
+    frame.dlc = static_cast<uint8_t>(payload.size() / 2);
+    for (uint8_t i = 0; i < frame.dlc; ++i) {
+        int hi = hexValue(payload[2 * i]);
+        int lo = hexValue(payload[2 * i + 1]);
+        if (hi < 0 || lo < 0) return std::nullopt;
+        frame.data[i] = static_cast<uint8_t>((hi << 4) | lo);
+    }
+    return frame;
+}
+
 }  // namespace blueprint::can
