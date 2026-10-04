@@ -1,0 +1,9 @@
+[project]
+name = "cansim"
+version = "0.1.0"
+description = "Bit-level CAN 2.0A simulator: frames, CAN_H/CAN_L waveforms, DBC signals"
+requires-python = ">=3.9"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
