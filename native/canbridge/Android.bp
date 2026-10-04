@@ -1,0 +1,43 @@
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+cc_library_static {
+    name: "libblueprint_canbridge",
+    vendor_available: true,
+    host_supported: true,
+    srcs: [
+        "src/CanBridge.cpp",
+        "src/SignalRouter.cpp",
+    ],
+    // "." exposes generated/BlueprintSignals.h (produced by `make codegen`).
+    export_include_dirs: [
+        "include",
+        ".",
+    ],
+    whole_static_libs: [
+        "libblueprint_cansignal",
+        "libblueprint_cantransport",
+    ],
+    export_static_lib_headers: [
+        "libblueprint_cansignal",
+        "libblueprint_cantransport",
+    ],
+    cflags: ["-Wall", "-Wextra", "-Werror"],
+}
+
+cc_binary {
+    name: "bp-canbridge",
+    vendor: true,
+    srcs: ["tools/canbridge_main.cpp"],
+    static_libs: ["libblueprint_canbridge"],
+}
+
+cc_test {
+    name: "libblueprint_canbridge_test",
+    host_supported: true,
+    vendor: true,
+    srcs: ["test/CanBridgeTest.cpp"],
+    static_libs: ["libblueprint_canbridge"],
+    test_suites: ["general-tests"],
+}

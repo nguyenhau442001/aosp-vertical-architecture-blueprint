@@ -6,13 +6,17 @@ import threading
 import time
 from pathlib import Path
 
+from .codegen import generate_header
 from .dbc import load_dbc
 from .frame import CanFrame, encode_wire
 from .physical import ascii_plot, receive, to_waveform, write_csv, write_vcd
 from .stream import DEFAULT_PORT, Ramp, SignalSource, SocketCanSender, TcpFrameServer
+from .vhal import explain_property_id, resolve_property
 
 
-DEFAULT_DBC = Path(__file__).resolve().parents[3] / "vehicle" / "dbc" / "blueprint.dbc"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_DBC = REPO_ROOT / "vehicle" / "dbc" / "blueprint.dbc"
+DEFAULT_HEADER = REPO_ROOT / "native" / "canbridge" / "generated" / "BlueprintSignals.h"
 
 
 def parse_frame(text: str) -> CanFrame:
@@ -50,6 +54,24 @@ def cmd_decode(args) -> int:
     for sig in msg.signals:
         print(f"  {sig.name:<20} raw={sig.extract(args.frame.data):<8} "
               f"value={sig.decode(args.frame.data):g} {sig.unit}")
+    return 0
+
+
+def cmd_codegen(args) -> int:
+    source = Path(args.dbc).resolve()
+    try:
+        source_label = source.relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        source_label = source.name
+    text = generate_header(load_dbc(source), source_label)
+    Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.out).write_text(text)
+    print(f"wrote {args.out}")
+    return 0
+
+
+def cmd_explain(args) -> int:
+    print(explain_property_id(resolve_property(args.property)))
     return 0
 
 
@@ -174,6 +196,15 @@ def build_parser() -> argparse.ArgumentParser:
                    help="write to a SocketCAN interface (Linux) instead of TCP")
     s.add_argument("-v", "--verbose", action="store_true", help="print every frame")
     s.set_defaults(func=cmd_serve)
+
+    g = sub.add_parser("codegen", help="generate the C++ signal table for canbridge")
+    g.add_argument("--dbc", default=DEFAULT_DBC)
+    g.add_argument("--out", default=DEFAULT_HEADER)
+    g.set_defaults(func=cmd_codegen)
+
+    x = sub.add_parser("explain", help="break a VHAL property id into its bit fields")
+    x.add_argument("property", help="name (ENV_OUTSIDE_TEMPERATURE) or id (0x21600101)")
+    x.set_defaults(func=cmd_explain)
 
     d = sub.add_parser("decode", help="decode a frame with the DBC")
     d.add_argument("frame", type=parse_frame)

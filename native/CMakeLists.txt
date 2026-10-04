@@ -41,3 +41,20 @@ target_link_libraries(bp-candump cantransport)
 add_executable(cantransport_test cantransport/test/TransportTest.cpp)
 target_link_libraries(cantransport_test cantransport GTest::gtest_main)
 gtest_discover_tests(cantransport_test)
+
+# --- canbridge -------------------------------------------------------------
+add_library(canbridge STATIC
+    canbridge/src/CanBridge.cpp
+    canbridge/src/SignalRouter.cpp
+)
+target_include_directories(canbridge PUBLIC canbridge/include canbridge)
+target_link_libraries(canbridge PUBLIC cansignal cantransport)
+find_package(Threads REQUIRED)
+target_link_libraries(canbridge PUBLIC Threads::Threads)
+
+add_executable(bp-canbridge canbridge/tools/canbridge_main.cpp)
+target_link_libraries(bp-canbridge canbridge)
+
+add_executable(canbridge_test canbridge/test/CanBridgeTest.cpp)
+target_link_libraries(canbridge_test canbridge GTest::gtest_main)
+gtest_discover_tests(canbridge_test)
