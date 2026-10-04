@@ -25,3 +25,19 @@ target_include_directories(cansignal PUBLIC cansignal/include)
 add_executable(cansignal_test cansignal/test/SignalTest.cpp)
 target_link_libraries(cansignal_test cansignal GTest::gtest_main)
 gtest_discover_tests(cansignal_test)
+
+# --- cantransport ----------------------------------------------------------
+add_library(cantransport STATIC
+    cantransport/src/CanFrame.cpp
+    cantransport/src/SocketCanTransport.cpp
+    cantransport/src/TcpCanTransport.cpp
+    cantransport/src/Transport.cpp
+)
+target_include_directories(cantransport PUBLIC cantransport/include)
+
+add_executable(bp-candump cantransport/tools/candump_main.cpp)
+target_link_libraries(bp-candump cantransport)
+
+add_executable(cantransport_test cantransport/test/TransportTest.cpp)
+target_link_libraries(cantransport_test cantransport GTest::gtest_main)
+gtest_discover_tests(cantransport_test)

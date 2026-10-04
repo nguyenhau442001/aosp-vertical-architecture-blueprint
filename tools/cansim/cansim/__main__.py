@@ -2,11 +2,14 @@
 
 import argparse
 import sys
+import threading
+import time
 from pathlib import Path
 
 from .dbc import load_dbc
 from .frame import CanFrame, encode_wire
 from .physical import ascii_plot, receive, to_waveform, write_csv, write_vcd
+from .stream import DEFAULT_PORT, Ramp, SignalSource, SocketCanSender, TcpFrameServer
 
 
 DEFAULT_DBC = Path(__file__).resolve().parents[3] / "vehicle" / "dbc" / "blueprint.dbc"
@@ -47,6 +50,52 @@ def cmd_decode(args) -> int:
     for sig in msg.signals:
         print(f"  {sig.name:<20} raw={sig.extract(args.frame.data):<8} "
               f"value={sig.decode(args.frame.data):g} {sig.unit}")
+    return 0
+
+
+def _read_stdin_updates(source: SignalSource) -> None:
+    for line in sys.stdin:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            name, value = parse_assignment(line)
+            source.set(name, value)
+            print(f"  set {name} = {value:g}")
+        except (argparse.ArgumentTypeError, KeyError, ValueError) as e:
+            print(f"  ignored '{line}': {e}")
+
+
+def cmd_serve(args) -> int:
+    msg = load_dbc(args.dbc).by_name[args.message]
+    source = SignalSource(msg, dict(args.values), counter=args.counter,
+                          ramps=dict(args.ramp or []))
+    if args.socketcan:
+        sink = SocketCanSender(args.socketcan)
+        print(f"sending {msg.name} to socketcan:{args.socketcan} every {args.period}s")
+    else:
+        sink = TcpFrameServer(args.bind, args.port)
+        print(f"serving {msg.name} on tcp:{args.bind}:{sink.port} every {args.period}s")
+        print(f"  emulator: adb reverse tcp:{sink.port} tcp:{sink.port}")
+    print("  type Signal=value + Enter to change a value, Ctrl-C to stop")
+    threading.Thread(target=_read_stdin_updates, args=(source,), daemon=True).start()
+
+    start = time.monotonic()
+    last_print = 0.0
+    try:
+        while True:
+            now = time.monotonic() - start
+            frame = source.frame_at(now)
+            sink.broadcast(frame)
+            if args.verbose or now - last_print >= 1.0:
+                clients = getattr(sink, "client_count", "-")
+                print(f"  t={now:7.2f}s {frame}  clients={clients}")
+                last_print = now
+            time.sleep(args.period)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        sink.close()
     return 0
 
 
@@ -110,6 +159,22 @@ def build_parser() -> argparse.ArgumentParser:
     _add_wave_options(e)
     e.set_defaults(func=cmd_encode)
 
+    s = sub.add_parser("serve", help="send a DBC message periodically (TCP or SocketCAN)")
+    s.add_argument("message", help="DBC message name, e.g. THERMAL_STATUS")
+    s.add_argument("values", nargs="*", type=parse_assignment,
+                   help="initial Signal=value pairs")
+    s.add_argument("--dbc", default=DEFAULT_DBC)
+    s.add_argument("--period", type=float, default=0.1, help="seconds between frames")
+    s.add_argument("--ramp", action="append", type=Ramp.parse,
+                   help="Signal:min:max:period_s triangle wave, repeatable")
+    s.add_argument("--counter", help="signal to increment every frame")
+    s.add_argument("--bind", default="127.0.0.1")
+    s.add_argument("--port", type=int, default=DEFAULT_PORT)
+    s.add_argument("--socketcan", metavar="IFACE",
+                   help="write to a SocketCAN interface (Linux) instead of TCP")
+    s.add_argument("-v", "--verbose", action="store_true", help="print every frame")
+    s.set_defaults(func=cmd_serve)
+
     d = sub.add_parser("decode", help="decode a frame with the DBC")
     d.add_argument("frame", type=parse_frame)
     d.add_argument("--dbc", default=DEFAULT_DBC)
@@ -118,6 +183,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv=None) -> int:
+    sys.stdout.reconfigure(line_buffering=True)
     args = build_parser().parse_args(argv)
     return args.func(args)
 

@@ -61,6 +61,44 @@ python3 -m cansim decode 3E8#7902000000000000
 LSB of byte 0 upward; Motorola (`@0`) signals give the MSB position and walk
 down within a byte, then jump to bit 7 of the next byte.
 
+## `serve`: feed frames to the device
+
+Sends one DBC message periodically. Default: TCP server on `127.0.0.1:29536`
+streaming 16-byte Linux `struct can_frame` records, which
+`native/cantransport` (`tcp:` transport) reads.
+
+```bash
+# Outside temperature sweeps -10..40 °C every 20 s, counter increments, 10 Hz
+python3 -m cansim serve THERMAL_STATUS --ramp OutsideTemp:-10:40:20 \
+    --counter ThermalCounter --period 0.1
+
+# While it runs, type a value and press Enter to pin it:
+OutsideTemp=30
+```
+
+Check the stream with the native dumper (built by `make test-native`):
+
+```bash
+native/build/bp-candump tcp:127.0.0.1:29536
+# 3E8#2002000000000002
+# 3E8#2D02000000000003
+```
+
+On the Android emulator the device connects to its own localhost, so forward
+the port back to the host first:
+
+```bash
+adb reverse tcp:29536 tcp:29536
+```
+
+On Linux (UTM VM) with a virtual CAN interface, write to SocketCAN instead:
+
+```bash
+./scripts/setup_vcan.sh            # creates vcan0
+python3 -m cansim serve THERMAL_STATUS OutsideTemp=23.3 --socketcan vcan0
+candump vcan0                      # can-utils, or native/build/bp-candump socketcan:vcan0
+```
+
 ## Modules
 
 | Module | Role |
@@ -68,3 +106,4 @@ down within a byte, then jump to bit 7 of the next byte.
 | `cansim/frame.py` | `CanFrame`, CRC-15, bit stuffing, wire encode/decode |
 | `cansim/physical.py` | Voltages, noise, differential receiver, ASCII/CSV/VCD output |
 | `cansim/dbc.py` | DBC parser, Intel/Motorola bit extraction, physical <-> raw |
+| `cansim/stream.py` | Periodic frames, ramps, counters, TCP server, SocketCAN sender |

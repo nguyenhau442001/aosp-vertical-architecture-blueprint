@@ -1,0 +1,33 @@
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+cc_library_static {
+    name: "libblueprint_cantransport",
+    vendor_available: true,
+    host_supported: true,
+    srcs: [
+        "src/CanFrame.cpp",
+        "src/SocketCanTransport.cpp",
+        "src/TcpCanTransport.cpp",
+        "src/Transport.cpp",
+    ],
+    export_include_dirs: ["include"],
+    cflags: ["-Wall", "-Wextra", "-Werror"],
+}
+
+cc_binary {
+    name: "bp-candump",
+    vendor: true,
+    srcs: ["tools/candump_main.cpp"],
+    static_libs: ["libblueprint_cantransport"],
+}
+
+cc_test {
+    name: "libblueprint_cantransport_test",
+    host_supported: true,
+    vendor: true,
+    srcs: ["test/TransportTest.cpp"],
+    static_libs: ["libblueprint_cantransport"],
+    test_suites: ["general-tests"],
+}
