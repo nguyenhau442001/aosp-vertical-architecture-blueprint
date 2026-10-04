@@ -12,6 +12,8 @@ help:
 	@echo "  make test     Run cansim (Python) and native (C++) host tests"
 	@echo "  make codegen  Regenerate native/canbridge/generated/ from vehicle/dbc/"
 	@echo ""
+	@echo "Adding a vehicle signal: docs/vhal/adding-a-new-signal.md"
+	@echo ""
 
 run:
 	@./scripts/run.sh $(AVD)

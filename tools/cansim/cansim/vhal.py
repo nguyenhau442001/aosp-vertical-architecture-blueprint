@@ -47,6 +47,11 @@ KNOWN_PROPERTIES = {
     "ENV_OUTSIDE_TEMPERATURE": 0x11600703,
 }
 
+# Vendor properties defined by this project. Keep ids unique inside VENDOR.
+VENDOR_PROPERTIES = {
+    "VENDOR_BATTERY_CELL_TEMP_MAX": 0x21600101,  # VENDOR | GLOBAL | FLOAT | 0x0101
+}
+
 # VehicleAreaSeat bits and the HVAC zones used by the emulator's default config.
 SEAT = {
     "ROW_1_LEFT": 0x0001,
@@ -81,11 +86,13 @@ def resolve_property(text: str) -> int:
     """Standard property name or a literal id such as 0x21600101."""
     if text in KNOWN_PROPERTIES:
         return KNOWN_PROPERTIES[text]
+    if text in VENDOR_PROPERTIES:
+        return VENDOR_PROPERTIES[text]
     try:
         return int(text, 0)
     except ValueError:
-        raise ValueError(f"unknown VHAL property '{text}' (add it to KNOWN_PROPERTIES "
-                         f"or use a numeric id)") from None
+        raise ValueError(f"unknown VHAL property '{text}' (add it to KNOWN_PROPERTIES / "
+                         f"VENDOR_PROPERTIES or use a numeric id)") from None
 
 
 def value_type_of(prop_id: int) -> str:

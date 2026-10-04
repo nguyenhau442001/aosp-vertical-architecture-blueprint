@@ -8,6 +8,7 @@ from cansim.vhal import (
     HVAC_LEFT,
     HVAC_RIGHT,
     KNOWN_PROPERTIES,
+    VENDOR_PROPERTIES,
     explain_property_id,
     make_property_id,
     resolve_property,
@@ -33,6 +34,19 @@ def test_hvac_zones_match_emulator_config():
 
 def test_explain_vendor_property():
     assert explain_property_id(0x21600101) == "0x21600101 = VENDOR | GLOBAL | FLOAT | 0x0101"
+
+
+def test_vendor_ids_live_in_vendor_group():
+    for name, prop_id in VENDOR_PROPERTIES.items():
+        assert prop_id & 0xF0000000 == 0x20000000, name
+    assert make_property_id("VENDOR", "GLOBAL", "FLOAT", 0x0101) == \
+        VENDOR_PROPERTIES["VENDOR_BATTERY_CELL_TEMP_MAX"]
+
+
+def test_battery_cell_temp_is_bound_to_vendor_property():
+    text = generate_header(load_dbc(DBC_PATH), "vehicle/dbc/blueprint.dbc")
+    assert '{0x3E9, 8, &kBATTERY_THERMAL_CellTempMax, 0x21600101, 0, ' \
+           '"VENDOR_BATTERY_CELL_TEMP_MAX", ChangeMode::kOnChange, 0.0f, 0.0f},' in text
 
 
 def test_resolve_property_accepts_names_and_numbers():

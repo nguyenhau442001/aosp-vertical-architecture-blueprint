@@ -4,7 +4,7 @@ NS_ :
 
 BS_:
 
-BU_: ClimateECU HeadUnit
+BU_: ClimateECU BMS HeadUnit
 
 CM_ "Signal database for the AOSP vertical blueprint. Edit here first when adding a vehicle signal.";
 
@@ -15,9 +15,16 @@ BO_ 1000 THERMAL_STATUS: 8 ClimateECU
  SG_ EvaporatorTemp : 39|16@0- (0.01,0) [-50|150] "degC" HeadUnit
  SG_ ThermalCounter : 56|4@1+ (1,0) [0|15] "" HeadUnit
 
+BO_ 1001 BATTERY_THERMAL: 8 BMS
+ SG_ CellTempMax : 0|8@1+ (1,-40) [-40|125] "degC" HeadUnit
+ SG_ CellTempMin : 8|8@1+ (1,-40) [-40|125] "degC" HeadUnit
+ SG_ CoolantInletTemp : 16|8@1+ (1,-40) [-40|125] "degC" HeadUnit
+ SG_ BatteryThermalCounter : 60|4@1+ (1,0) [0|15] "" HeadUnit
+
 CM_ SG_ 1000 OutsideTemp "Ambient temperature from the front bumper NTC.";
 CM_ SG_ 1000 EvaporatorTemp "Big-endian (Motorola) signed example.";
 CM_ SG_ 1000 ThermalCounter "Rolling counter, increments every frame.";
+CM_ SG_ 1001 CellTempMax "Hottest cell in the HV battery pack. Worked example in docs/vhal/adding-a-new-signal.md.";
 
 BA_DEF_ SG_ "VhalProperty" STRING ;
 BA_DEF_ SG_ "VhalAreaId" INT 0 2147483647;
@@ -37,3 +44,4 @@ BA_ "VhalProperty" SG_ 1000 CabinTempRow1Left "HVAC_TEMPERATURE_CURRENT";
 BA_ "VhalAreaId" SG_ 1000 CabinTempRow1Left 49;
 BA_ "VhalProperty" SG_ 1000 CabinTempRow1Right "HVAC_TEMPERATURE_CURRENT";
 BA_ "VhalAreaId" SG_ 1000 CabinTempRow1Right 68;
+BA_ "VhalProperty" SG_ 1001 CellTempMax "VENDOR_BATTERY_CELL_TEMP_MAX";

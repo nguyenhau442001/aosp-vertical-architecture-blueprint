@@ -61,6 +61,19 @@ TEST(SignalRouterTest, RoutesGeneratedBindings) {
     EXPECT_TRUE(updates[0].available);
 }
 
+TEST(SignalRouterTest, RoutesBatteryCellTempToVendorProperty) {
+    SignalRouter router(allBindings(), 1000 * kMs);
+    CanFrame f;
+    f.id = 0x3E9;
+    f.dlc = 8;
+    f.data = {87, 71, 65, 0, 0, 0, 0, 0};  // CellTempMax 47 degC
+    auto updates = router.onFrame(f, 1);
+    ASSERT_EQ(updates.size(), 1u);
+    EXPECT_EQ(updates[0].propId, 0x21600101);
+    EXPECT_EQ(updates[0].areaId, 0);
+    EXPECT_DOUBLE_EQ(updates[0].value, 47.0);
+}
+
 TEST(SignalRouterTest, EmitsOnlyOnChange) {
     SignalRouter router(allBindings(), 1000 * kMs);
     router.onFrame(thermal(0x79, 0x02, 63, 68), 1);

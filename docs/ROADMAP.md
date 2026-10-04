@@ -28,9 +28,19 @@ an app.
 | C6 | C++ transport | Reading `struct can_frame` from SocketCAN, or TCP from the host simulator |
 | C7 | `canbridge` daemon | Mapping a decoded signal to a VHAL property id + area id |
 | C8 | AOSP `CanVehicleHardware` | Plugging the bridge into the real VHAL AIDL service |
-| C9 | Guide: add a new signal | The checklist you repeat for every new vehicle signal |
+| C9 | Guide: add a new signal | The checklist you repeat for every new vehicle signal (worked example: BMS cell temperature -> vendor property) |
+
+All of C1-C9 are in. Next candidates, one commit each:
+
+- TX path: writable properties (e.g. `HVAC_TEMPERATURE_SET`) encoded and sent on CAN.
+- sysfs/IIO source for sensors wired to the SoC instead of CAN.
+- Message-level checks: rolling counter and checksum validation.
+- sepolicy for `vendor.vehicle-hal-blueprint` so it runs in enforcing mode.
 
 Docs to read in order:
 
 1. [docs/can/01-can-basics.md](can/01-can-basics.md)
-2. [docs/vhal/adding-a-new-signal.md](vhal/adding-a-new-signal.md) (from C9)
+2. [tools/cansim/README.md](../tools/cansim/README.md): the simulator
+3. [native/README.md](../native/README.md): C++ layers and host workflow
+4. [vhal/aosp/README.md](../vhal/aosp/README.md): VHAL service, deploy, verify
+5. [docs/vhal/adding-a-new-signal.md](vhal/adding-a-new-signal.md): the checklist

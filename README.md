@@ -20,6 +20,28 @@ flowchart TD
 
 ---
 
+## 🔌 CAN -> VHAL Pipeline
+
+From the voltage on CAN_H / CAN_L to `CarPropertyManager`, one tested layer at a time.
+Start with [docs/ROADMAP.md](docs/ROADMAP.md).
+
+```bash
+make test                                   # Python simulator + C++ host tests
+cd tools/cansim && python3 -m cansim wave 3E8#7902          # see a frame as CAN_H / CAN_L
+python3 -m cansim serve THERMAL_STATUS --ramp OutsideTemp:-10:40:20   # fake ECU
+native/build/bp-canbridge tcp:127.0.0.1:29536                # what VHAL receives
+```
+
+| Path | What |
+|------|------|
+| [vehicle/dbc/blueprint.dbc](vehicle/dbc/blueprint.dbc) | Signal database, source of truth |
+| [tools/cansim/](tools/cansim/) | CAN simulator: bits, CAN_H/CAN_L, DBC codec, TCP/vcan streaming, codegen |
+| [native/](native/) | C++ signal codec, transports (SocketCAN/TCP), CAN bridge |
+| [vhal/aosp/](vhal/aosp/) | `CanVehicleHardware` + VHAL AIDL service |
+| [docs/vhal/adding-a-new-signal.md](docs/vhal/adding-a-new-signal.md) | Checklist for every new signal |
+
+---
+
 ## 🚀 Fast Iteration Development Workflow
 
 ### ⚡ Quick Start (One Command)

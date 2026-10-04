@@ -84,3 +84,11 @@ BO_ 1 M: 8 X
 """
     with pytest.raises(ValueError):
         parse_dbc(text)
+
+
+def test_battery_thermal_decodes_cell_temp(db):
+    msg = db.by_id[0x3E9]
+    assert msg.name == "BATTERY_THERMAL"
+    data = msg.encode({"CellTempMax": 47, "CellTempMin": 31, "BatteryThermalCounter": 3})
+    assert data[0] == 87  # 47 + 40
+    assert msg.decode(data)["CellTempMax"] == 47
