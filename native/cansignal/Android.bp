@@ -1,0 +1,21 @@
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+cc_library_static {
+    name: "libblueprint_cansignal",
+    vendor_available: true,
+    host_supported: true,
+    srcs: ["src/Signal.cpp"],
+    export_include_dirs: ["include"],
+    cflags: ["-Wall", "-Wextra", "-Werror"],
+}
+
+cc_test {
+    name: "libblueprint_cansignal_test",
+    host_supported: true,
+    vendor: true,
+    srcs: ["test/SignalTest.cpp"],
+    static_libs: ["libblueprint_cansignal"],
+    test_suites: ["general-tests"],
+}

@@ -1,6 +1,6 @@
 AVD ?= Automotive_15_ARM64
 
-.PHONY: help run start unlock
+.PHONY: help run start unlock test test-py test-native
 
 help:
 	@echo "AOSP Vertical Architecture Blueprint"
@@ -9,6 +9,7 @@ help:
 	@echo "  make run      Launch Android 15 Automotive & unlock partitions automatically"
 	@echo "  make start    Start emulator only"
 	@echo "  make unlock   Unlock partitions (disable-verity & remount)"
+	@echo "  make test     Run cansim (Python) and native (C++) host tests"
 	@echo ""
 
 run:
@@ -19,3 +20,13 @@ start:
 
 unlock:
 	@./scripts/unlock_partitions.sh
+
+test: test-py test-native
+
+test-py:
+	@cd tools/cansim && python3 -m pytest -q
+
+test-native:
+	@cmake -S native -B native/build -DCMAKE_BUILD_TYPE=Debug > /dev/null
+	@cmake --build native/build -j8
+	@ctest --test-dir native/build --output-on-failure

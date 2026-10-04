@@ -1,0 +1,27 @@
+# Host build for fast iteration on macOS/Linux. On device the same sources
+# build through the Android.bp files next to them.
+cmake_minimum_required(VERSION 3.20)
+project(blueprint_native CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+add_compile_options(-Wall -Wextra -Werror)
+
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.15.2.tar.gz
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+FetchContent_MakeAvailable(googletest)
+enable_testing()
+include(GoogleTest)
+
+# --- cansignal -------------------------------------------------------------
+add_library(cansignal STATIC cansignal/src/Signal.cpp)
+target_include_directories(cansignal PUBLIC cansignal/include)
+
+add_executable(cansignal_test cansignal/test/SignalTest.cpp)
+target_link_libraries(cansignal_test cansignal GTest::gtest_main)
+gtest_discover_tests(cansignal_test)
