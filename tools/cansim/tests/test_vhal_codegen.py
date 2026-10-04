@@ -53,8 +53,29 @@ def test_codegen_emits_specs_and_bindings():
     assert 'inline constexpr SignalSpec kTHERMAL_STATUS_OutsideTemp{"OutsideTemp", 0, 16, ' \
            'ByteOrder::kIntel, false, 0.1, -40.0, -40.0, 125.0};' in text
     assert '{0x3E8, 8, &kTHERMAL_STATUS_OutsideTemp, 0x11600703, 0, ' \
-           '"ENV_OUTSIDE_TEMPERATURE"}' in text
+           '"ENV_OUTSIDE_TEMPERATURE", ChangeMode::kContinuous, 1.0f, 2.0f},' in text
     assert "EvaporatorTemp, 0x" not in text  # no VhalProperty attribute -> not routed
+
+
+def test_codegen_defaults_to_on_change():
+    dbc = """
+BO_ 1 M: 8 X
+ SG_ A : 0|8@1+ (1,0) [0|255] "" Y
+BA_ "VhalProperty" SG_ 1 A "0x21600001";
+"""
+    text = generate_header(parse_dbc(dbc), "x.dbc")
+    assert '"0x21600001", ChangeMode::kOnChange, 0.0f, 0.0f},' in text
+
+
+def test_codegen_rejects_bad_change_mode():
+    dbc = """
+BO_ 1 M: 8 X
+ SG_ A : 0|8@1+ (1,0) [0|255] "" Y
+BA_ "VhalProperty" SG_ 1 A "0x21600001";
+BA_ "VhalChangeMode" SG_ 1 A "SOMETIMES";
+"""
+    with pytest.raises(ValueError):
+        generate_header(parse_dbc(dbc), "x.dbc")
 
 
 def test_codegen_rejects_unsupported_type():

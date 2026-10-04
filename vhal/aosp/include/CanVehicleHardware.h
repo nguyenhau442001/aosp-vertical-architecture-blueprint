@@ -88,6 +88,9 @@ class CanVehicleHardware final : public IVehicleHardware {
 
     std::unique_ptr<IVehicleHardware> mInner;
     std::vector<::blueprint::can::SignalBinding> mBindings;
+    // READ configs built from the DBC for bound properties the inner hardware
+    // does not declare (VENDOR properties).
+    std::vector<aidlvhal::VehiclePropConfig> mExtraConfigs;
 
     mutable std::mutex mLock;
     std::map<Key, aidlvhal::VehiclePropValue> mCache;  // last value from CAN

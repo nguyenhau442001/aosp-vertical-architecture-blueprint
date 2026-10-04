@@ -21,10 +21,18 @@ CM_ SG_ 1000 ThermalCounter "Rolling counter, increments every frame.";
 
 BA_DEF_ SG_ "VhalProperty" STRING ;
 BA_DEF_ SG_ "VhalAreaId" INT 0 2147483647;
+BA_DEF_ SG_ "VhalChangeMode" ENUM "ON_CHANGE","CONTINUOUS";
+BA_DEF_ SG_ "VhalMinSampleRate" FLOAT 0 1000;
+BA_DEF_ SG_ "VhalMaxSampleRate" FLOAT 0 1000;
 BA_DEF_DEF_ "VhalProperty" "";
 BA_DEF_DEF_ "VhalAreaId" 0;
+BA_DEF_DEF_ "VhalChangeMode" "ON_CHANGE";
+BA_DEF_DEF_ "VhalMinSampleRate" 1;
+BA_DEF_DEF_ "VhalMaxSampleRate" 10;
 
 BA_ "VhalProperty" SG_ 1000 OutsideTemp "ENV_OUTSIDE_TEMPERATURE";
+BA_ "VhalChangeMode" SG_ 1000 OutsideTemp "CONTINUOUS";
+BA_ "VhalMaxSampleRate" SG_ 1000 OutsideTemp 2;
 BA_ "VhalProperty" SG_ 1000 CabinTempRow1Left "HVAC_TEMPERATURE_CURRENT";
 BA_ "VhalAreaId" SG_ 1000 CabinTempRow1Left 49;
 BA_ "VhalProperty" SG_ 1000 CabinTempRow1Right "HVAC_TEMPERATURE_CURRENT";

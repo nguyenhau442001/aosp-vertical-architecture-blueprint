@@ -24,12 +24,14 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iterator>
 #include <set>
 
 namespace android::hardware::automotive::vehicle::canhw {
 
 using ::android::base::StringAppendF;
 using ::blueprint::can::CanBridge;
+using ::blueprint::can::ChangeMode;
 using ::blueprint::can::elapsedRealtimeNs;
 using ::blueprint::can::ICanTransport;
 using ::blueprint::can::parseFrame;
@@ -41,7 +43,10 @@ using aidlvhal::GetValueResult;
 using aidlvhal::SetValueRequest;
 using aidlvhal::StatusCode;
 using aidlvhal::SubscribeOptions;
+using aidlvhal::VehicleAreaConfig;
 using aidlvhal::VehiclePropConfig;
+using aidlvhal::VehiclePropertyAccess;
+using aidlvhal::VehiclePropertyChangeMode;
 using aidlvhal::VehiclePropertyStatus;
 using aidlvhal::VehiclePropertyType;
 using aidlvhal::VehiclePropValue;
@@ -50,15 +55,32 @@ CanVehicleHardware::CanVehicleHardware(std::unique_ptr<IVehicleHardware> inner,
                                        std::unique_ptr<ICanTransport> transport,
                                        std::vector<SignalBinding> bindings)
     : mInner(std::move(inner)), mBindings(std::move(bindings)) {
-    // A binding is useless if VHAL has no config for it: clients cannot see it.
+    // Clients only see properties that have a config. SYSTEM properties come
+    // from the inner hardware's JSON; anything it lacks is declared here from
+    // the DBC attributes, one READ config per property with one area per binding.
     std::set<int32_t> configured;
     for (const auto& config : mInner->getAllPropertyConfigs()) configured.insert(config.prop);
     for (const auto& b : mBindings) {
-        if (configured.count(b.propId) == 0) {
-            ALOGW("%s (0x%08x) is bound to CAN signal %s but has no VehiclePropConfig; "
-                  "add it to the VHAL config JSON",
-                  b.propName, b.propId, b.signal->name);
+        if (configured.count(b.propId) != 0) continue;
+        auto it = std::find_if(mExtraConfigs.begin(), mExtraConfigs.end(),
+                               [&](const VehiclePropConfig& c) { return c.prop == b.propId; });
+        if (it == mExtraConfigs.end()) {
+            VehiclePropConfig config;
+            config.prop = b.propId;
+            config.access = VehiclePropertyAccess::READ;
+            config.changeMode = b.changeMode == ChangeMode::kContinuous
+                                        ? VehiclePropertyChangeMode::CONTINUOUS
+                                        : VehiclePropertyChangeMode::ON_CHANGE;
+            config.minSampleRate = b.minSampleRateHz;
+            config.maxSampleRate = b.maxSampleRateHz;
+            mExtraConfigs.push_back(std::move(config));
+            it = std::prev(mExtraConfigs.end());
+            ALOGI("declaring %s (0x%08x) from DBC", b.propName, b.propId);
         }
+        VehicleAreaConfig area;
+        area.areaId = b.areaId;
+        area.access = VehiclePropertyAccess::READ;
+        it->areaConfigs.push_back(std::move(area));
     }
 
     std::string name = transport->describe();
@@ -169,7 +191,9 @@ void CanVehicleHardware::refreshLoop() {
 }
 
 std::vector<VehiclePropConfig> CanVehicleHardware::getAllPropertyConfigs() const {
-    return mInner->getAllPropertyConfigs();
+    std::vector<VehiclePropConfig> configs = mInner->getAllPropertyConfigs();
+    configs.insert(configs.end(), mExtraConfigs.begin(), mExtraConfigs.end());
+    return configs;
 }
 
 StatusCode CanVehicleHardware::setValues(std::shared_ptr<const SetValuesCallback> callback,

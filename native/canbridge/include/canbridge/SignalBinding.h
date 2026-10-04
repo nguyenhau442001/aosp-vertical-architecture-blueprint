@@ -22,6 +22,9 @@
 
 namespace blueprint::can {
 
+// Values match aidl VehiclePropertyChangeMode.
+enum class ChangeMode : int32_t { kOnChange = 1, kContinuous = 2 };
+
 // One row of the routing table: "this bit field of this CAN message is that
 // VHAL property/area". Generated from the DBC into generated/BlueprintSignals.h.
 struct SignalBinding {
@@ -31,6 +34,11 @@ struct SignalBinding {
     int32_t propId;
     int32_t areaId;  // 0 for VehicleArea::GLOBAL properties
     const char* propName;
+    // Used only when VHAL has no config for propId (typical for VENDOR
+    // properties): CanVehicleHardware then builds a READ config from these.
+    ChangeMode changeMode;
+    float minSampleRateHz;  // CONTINUOUS only
+    float maxSampleRateHz;  // CONTINUOUS only
 };
 
 // What the bridge hands to the VHAL layer.

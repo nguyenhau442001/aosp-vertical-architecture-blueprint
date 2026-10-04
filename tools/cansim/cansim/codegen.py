@@ -1,7 +1,12 @@
 """Generate the C++ signal/binding table consumed by native/canbridge.
 
 DBC is the single source of truth. A signal is routed to VHAL when it carries
-the attribute `VhalProperty` (and optionally `VhalAreaId`, default 0 = global).
+the attribute `VhalProperty`. Optional attributes:
+
+    VhalAreaId         area id, default 0 (global)
+    VhalChangeMode     "ON_CHANGE" (default) or "CONTINUOUS"
+    VhalMinSampleRate  Hz, CONTINUOUS only, default 1
+    VhalMaxSampleRate  Hz, CONTINUOUS only, default 10
 """
 
 from typing import List
@@ -10,6 +15,7 @@ from .dbc import Database
 from .vhal import explain_property_id, resolve_property, value_type_of
 
 SUPPORTED_TYPES = {"FLOAT", "INT32", "BOOLEAN"}
+CHANGE_MODES = {"ON_CHANGE": "ChangeMode::kOnChange", "CONTINUOUS": "ChangeMode::kContinuous"}
 
 _HEADER = """\
 // AUTO-GENERATED from {source} by `python3 -m cansim codegen`. DO NOT EDIT.
@@ -59,10 +65,20 @@ def generate_header(db: Database, source: str) -> str:
             if vtype not in SUPPORTED_TYPES:
                 raise ValueError(f"{msg.name}.{sig.name}: {vtype} properties not supported")
             area = int(sig.attributes.get("VhalAreaId", 0))
+            mode = str(sig.attributes.get("VhalChangeMode", "ON_CHANGE"))
+            if mode not in CHANGE_MODES:
+                raise ValueError(f"{msg.name}.{sig.name}: VhalChangeMode must be one of "
+                                 f"{sorted(CHANGE_MODES)}")
+            if mode == "CONTINUOUS":
+                min_rate = float(sig.attributes.get("VhalMinSampleRate", 1))
+                max_rate = float(sig.attributes.get("VhalMaxSampleRate", 10))
+            else:
+                min_rate = max_rate = 0.0
             bindings.append(
+                f"        // {explain_property_id(prop_id)}\n"
                 f"        {{0x{msg.can_id:03X}, {msg.dlc}, &{_signal_var(msg.name, sig.name)}, "
-                f"0x{prop_id:08X}, {area}, \"{prop}\"}},  "
-                f"// {explain_property_id(prop_id)}"
+                f"0x{prop_id:08X}, {area}, \"{prop}\", {CHANGE_MODES[mode]}, "
+                f"{_cpp_double(min_rate)}f, {_cpp_double(max_rate)}f}},"
             )
         out.append("")
 
