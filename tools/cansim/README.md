@@ -43,9 +43,28 @@ python3 -m cansim wave 3E8#7902 --diff-noise 2 --seed 3
 python3 -m cansim wave 3E8#7902 --vcd /tmp/frame.vcd --csv /tmp/frame.csv
 ```
 
+## `encode` / `decode`: physical values via the DBC
+
+Default database: [vehicle/dbc/blueprint.dbc](../../vehicle/dbc/blueprint.dbc).
+
+```bash
+python3 -m cansim encode THERMAL_STATUS OutsideTemp=23.3 EvaporatorTemp=-3.25
+# 3E8#79020000FEBB0000  (prints the frame; add --wave to see CAN_H/CAN_L)
+
+python3 -m cansim decode 3E8#7902000000000000
+# THERMAL_STATUS (3E8#7902000000000000)
+#   OutsideTemp          raw=633      value=23.3 degC
+#   ...
+```
+
+`physical = raw * factor + offset`. Intel (`@1`) signals count bits from the
+LSB of byte 0 upward; Motorola (`@0`) signals give the MSB position and walk
+down within a byte, then jump to bit 7 of the next byte.
+
 ## Modules
 
 | Module | Role |
 |--------|------|
 | `cansim/frame.py` | `CanFrame`, CRC-15, bit stuffing, wire encode/decode |
 | `cansim/physical.py` | Voltages, noise, differential receiver, ASCII/CSV/VCD output |
+| `cansim/dbc.py` | DBC parser, Intel/Motorola bit extraction, physical <-> raw |

@@ -1,0 +1,20 @@
+VERSION "blueprint-1"
+
+NS_ :
+
+BS_:
+
+BU_: ClimateECU HeadUnit
+
+CM_ "Signal database for the AOSP vertical blueprint. Edit here first when adding a vehicle signal.";
+
+BO_ 1000 THERMAL_STATUS: 8 ClimateECU
+ SG_ OutsideTemp : 0|16@1+ (0.1,-40) [-40|125] "degC" HeadUnit
+ SG_ CabinTempRow1Left : 16|8@1+ (0.5,-10) [-10|117.5] "degC" HeadUnit
+ SG_ CabinTempRow1Right : 24|8@1+ (0.5,-10) [-10|117.5] "degC" HeadUnit
+ SG_ EvaporatorTemp : 39|16@0- (0.01,0) [-50|150] "degC" HeadUnit
+ SG_ ThermalCounter : 56|4@1+ (1,0) [0|15] "" HeadUnit
+
+CM_ SG_ 1000 OutsideTemp "Ambient temperature from the front bumper NTC.";
+CM_ SG_ 1000 EvaporatorTemp "Big-endian (Motorola) signed example.";
+CM_ SG_ 1000 ThermalCounter "Rolling counter, increments every frame.";
