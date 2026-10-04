@@ -4,10 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from cansim.dbc import load_dbc
+from cansim.dbc import load_dbc, parse_dbc
 from cansim.frame import CanFrame
 from cansim.stream import (
     WIRE_SIZE,
+    Bus,
     Ramp,
     SignalSource,
     TcpFrameServer,
@@ -73,3 +74,33 @@ def test_tcp_server_broadcasts_frames(thermal):
         client.close()
     finally:
         server.close()
+
+
+TWO_MESSAGES = parse_dbc("""
+BO_ 16 A: 2 X
+ SG_ Temp : 0|8@1+ (1,-40) [-40|125] "" Y
+ SG_ Cnt : 8|4@1+ (1,0) [0|15] "" Y
+BO_ 17 B: 2 X
+ SG_ Temp : 0|8@1+ (1,-40) [-40|125] "" Y
+ SG_ Level : 8|8@1+ (1,0) [0|100] "" Y
+""")
+
+
+def test_bus_resolves_unique_and_qualified_names():
+    bus = Bus(TWO_MESSAGES, ["A", "B"], values=[("Level", 50), ("A.Temp", 20), ("B.Temp", 30)],
+              counters=["Cnt"])
+    frames = bus.frames_at(0)
+    assert [f.can_id for f in frames] == [16, 17]
+    assert TWO_MESSAGES.by_name["A"].decode(frames[0].data)["Temp"] == 20
+    assert TWO_MESSAGES.by_name["B"].decode(frames[1].data) == {"Temp": 30, "Level": 50}
+    bus.set("Level", 75)
+    assert TWO_MESSAGES.by_name["B"].decode(bus.frames_at(0)[1].data)["Level"] == 75
+
+
+def test_bus_rejects_ambiguous_and_unknown_names():
+    with pytest.raises(KeyError, match="ambiguous"):
+        Bus(TWO_MESSAGES, ["A", "B"], values=[("Temp", 1)])
+    with pytest.raises(KeyError):
+        Bus(TWO_MESSAGES, ["A"], values=[("Level", 1)])
+    with pytest.raises(KeyError):
+        Bus(TWO_MESSAGES, ["C"])

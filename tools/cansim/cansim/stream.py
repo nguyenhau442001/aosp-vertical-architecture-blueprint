@@ -7,9 +7,9 @@ identical to what native/cantransport TcpCanTransport expects.
 import socket
 import struct
 import threading
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
-from .dbc import Message
+from .dbc import Database, Message
 from .frame import CanFrame
 
 WIRE_FORMAT = "<IB3x8s"
@@ -76,6 +76,61 @@ class SignalSource:
                 self.values[self.counter] = (self.values.get(self.counter, -1) + 1) % (hi + 1)
             data = self.message.encode(self.values)
         return CanFrame(self.message.can_id, data)
+
+
+class Bus:
+    """Several messages sent together. Signal names may be written as
+    'Signal' (if unique across the chosen messages) or 'MESSAGE.Signal'."""
+
+    def __init__(self, db: Database, message_names: Sequence[str],
+                 values: Iterable[Tuple[str, float]] = (),
+                 ramps: Iterable[Tuple[str, Ramp]] = (),
+                 counters: Iterable[str] = ()):
+        unknown = [m for m in message_names if m not in db.by_name]
+        if unknown:
+            raise KeyError(f"unknown message(s): {', '.join(unknown)}")
+        messages = [db.by_name[m] for m in message_names]
+        self._messages = {m.name: m for m in messages}
+
+        per_msg_values: Dict[str, Dict[str, float]] = {m.name: {} for m in messages}
+        per_msg_ramps: Dict[str, Dict[str, Ramp]] = {m.name: {} for m in messages}
+        per_msg_counter: Dict[str, Optional[str]] = {m.name: None for m in messages}
+        for name, value in values:
+            msg, sig = self.resolve(name)
+            per_msg_values[msg][sig] = value
+        for name, ramp in ramps:
+            msg, sig = self.resolve(name)
+            per_msg_ramps[msg][sig] = ramp
+        for name in counters:
+            msg, sig = self.resolve(name)
+            per_msg_counter[msg] = sig
+        self.sources = {
+            m.name: SignalSource(m, per_msg_values[m.name], per_msg_counter[m.name],
+                                 per_msg_ramps[m.name])
+            for m in messages
+        }
+
+    def resolve(self, name: str) -> Tuple[str, str]:
+        if "." in name:
+            msg, sig = name.split(".", 1)
+            if msg not in self._messages:
+                raise KeyError(f"message {msg} is not being sent")
+            self._messages[msg].signal(sig)
+            return msg, sig
+        owners = [m.name for m in self._messages.values()
+                  if any(s.name == name for s in m.signals)]
+        if not owners:
+            raise KeyError(f"no signal {name} in {', '.join(self._messages)}")
+        if len(owners) > 1:
+            raise KeyError(f"{name} is ambiguous, write MESSAGE.{name} ({', '.join(owners)})")
+        return owners[0], name
+
+    def set(self, name: str, value: float) -> None:
+        msg, sig = self.resolve(name)
+        self.sources[msg].set(sig, value)
+
+    def frames_at(self, t: float) -> List[CanFrame]:
+        return [src.frame_at(t) for src in self.sources.values()]
 
 
 class TcpFrameServer:

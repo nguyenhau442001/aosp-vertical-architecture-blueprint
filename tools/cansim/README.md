@@ -74,6 +74,10 @@ python3 -m cansim serve THERMAL_STATUS --ramp OutsideTemp:-10:40:20 \
 
 # While it runs, type a value and press Enter to pin it:
 OutsideTemp=30
+
+# Several messages at once (comma separated). Qualify a signal name with
+# MESSAGE. when two messages share it.
+python3 -m cansim serve THERMAL_STATUS,BATTERY_THERMAL OutsideTemp=20 CellTempMax=35
 ```
 
 Check the stream with the native dumper (built by `make test-native`):
